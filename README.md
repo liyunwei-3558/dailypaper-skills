@@ -89,6 +89,7 @@ ObsidianVault/
 - [Python 3.8+](https://www.python.org/)
 - [`poppler-utils`](https://poppler.freedesktop.org/)，macOS 可以 `brew install poppler`
 - [Zotero](https://www.zotero.org/)，可选，但如果你已经用 Zotero 管论文会很方便
+- [larksuite/cli](https://github.com/larksuite/cli)，可选；只有想把推荐页和重点笔记发布成飞书文档时才需要
 
 把 skills 复制到 Claude Code 的 skills 目录：
 
@@ -142,6 +143,28 @@ claude --dangerously-skip-permissions
 | `daily_papers.keywords` | 你关心的研究方向，用来给论文加分 |
 | `daily_papers.negative_keywords` | 你不想看的方向 |
 | `daily_papers.domain_boost_keywords` | 额外加分的领域词 |
+
+### 飞书发布（可选）
+
+默认只写入 Obsidian，不会创建飞书文档。要打开飞书发布，先安装并登录 larksuite/cli，然后在 `~/.claude/skills/_shared/user-config.local.json` 里加：
+
+```json
+{
+  "feishu": {
+    "enabled": true,
+    "cli": "lark-cli",
+    "as": "user",
+    "parent_token": "",
+    "parent_position": "",
+    "publish_recommendation": true,
+    "publish_required_notes": true
+  }
+}
+```
+
+开启后，流水线会调用 `lark-cli docs +create --doc-format markdown`，把每日推荐页创建为飞书文档；重点论文笔记生成并回填链接后，也会把“🔥 必读”的笔记创建为飞书文档。脚本会维护 `.feishu-published.json`，避免同一个 Markdown 重复创建。
+
+飞书导入含网络图片的长 Markdown 有时会服务端超时，所以脚本内置了 fallback：先创建精简正文，再逐张追加图片；单张网络图片仍超时时，会下载到本地临时目录后用 `docs +media-insert --file` 上传补齐。Obsidian 原始 Markdown 不会被改短或删图。
 
 Zotero 分类批量阅读不需要你另外写映射文件。只要 `paths.zotero_db` 和 `paths.zotero_storage` 配好，脚本会直接从 Zotero 分类树里查。
 

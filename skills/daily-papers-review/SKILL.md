@@ -26,6 +26,7 @@ description: |
 - `AUTO_REFRESH_INDEXES`
 - `GIT_COMMIT_ENABLED`
 - `GIT_PUSH_ENABLED`
+- `FEISHU_ENABLED`
 - `ENRICHED_INPUT = /tmp/daily_papers_enriched.json`
 
 其中：
@@ -34,6 +35,7 @@ description: |
 - `CONCEPTS_PATH = {NOTES_PATH}/{concepts_folder}`
 - `DAILY_PAPERS_PATH = {VAULT_PATH}/{daily_papers_folder}`
 - `GIT_PUSH_ENABLED` 只有在 `GIT_COMMIT_ENABLED=true` 时才可能为真
+- `FEISHU_ENABLED = feishu.enabled`
 
 后续步骤统一使用上面的变量。
 
@@ -250,11 +252,30 @@ cd {VAULT_PATH} && git add "{daily_papers_folder}/YYYY-MM-DD-论文推荐.md" "{
 
 只有在 `GIT_PUSH_ENABLED=true` 且仓库已配置远端时才 push。
 
+3. **可选的飞书发布（推荐页草稿）**：
+
+仅当 `FEISHU_ENABLED=true` 时执行。执行前检查：
+
+   1. `lark-cli` 已安装并可在当前 shell 中运行（如配置了 `feishu.cli`，使用该路径）
+   2. `lark-cli` 已登录或已按 larksuite/cli 要求配置好飞书鉴权
+   3. 推荐文件 `{DAILY_PAPERS_PATH}/YYYY-MM-DD-论文推荐.md` 已写入
+
+然后运行：
+
+```bash
+python3 ../daily-papers/publish_to_feishu.py --recommendation "{DAILY_PAPERS_PATH}/YYYY-MM-DD-论文推荐.md" --date YYYY-MM-DD
+```
+
+脚本内部使用 larksuite/cli 的 `docs +create --doc-format markdown --title ... --content @file.md`。此时重点论文笔记还没生成完，所以脚本通常只会创建推荐页；完整笔记发布由 `daily-papers-notes` 在链接回填后再执行。脚本会读取 `feishu.registry_file`，避免同一个本地 Markdown 重复创建飞书文档。
+
+推荐页包含网络图片时，保留图片；如果飞书一次性导入图片导致服务端超时，脚本会自动先创建精简正文，再逐张追加图片，必要时下载图片后通过 `docs +media-insert --file` 上传。
+
 ## 输出
 
 完成后告知用户：
 - 推荐了多少篇论文
 - 必读/值得看/可跳过各多少篇
+- 如果开启了飞书发布，说明推荐页是否已创建为飞书文档
 - 提示运行下一步：`跑一下论文笔记`
 
 ## 注意事项
@@ -262,3 +283,4 @@ cd {VAULT_PATH} && git add "{daily_papers_folder}/YYYY-MM-DD-论文推荐.md" "{
 - 如果 `/tmp/daily_papers_enriched.json` 不存在，必须先运行 `跑一下论文抓取`
 - 不生成论文笔记、不补充概念库（那是第 3 步的事）
 - 默认不做 git commit / push；这是显式开启的高级能力
+- 默认不发布飞书文档；只有 `feishu.enabled=true` 时才调用 larksuite/cli

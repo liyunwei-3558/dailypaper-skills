@@ -106,6 +106,17 @@ DEFAULT_CONFIG = {
         "git_commit": False,
         "git_push": False,
     },
+    "feishu": {
+        "enabled": False,
+        "cli": "lark-cli",
+        "as": "user",
+        "parent_token": "",
+        "parent_position": "",
+        "publish_recommendation": True,
+        "publish_required_notes": True,
+        "title_prefix": "每日论文推荐",
+        "registry_file": ".feishu-published.json",
+    },
 }
 
 
@@ -155,6 +166,10 @@ def automation_config() -> dict:
     return config
 
 
+def feishu_config() -> dict:
+    return load_user_config().get("feishu", {})
+
+
 def obsidian_vault_path() -> Path:
     return _expand(paths_config()["obsidian_vault"])
 
@@ -189,6 +204,10 @@ def git_commit_enabled() -> bool:
 
 def git_push_enabled() -> bool:
     return bool(automation_config()["git_push"])
+
+
+def feishu_enabled() -> bool:
+    return bool(feishu_config().get("enabled"))
 
 
 # ── Temp directory for intermediate data (Windows/Linux compatible) ──────────

@@ -1,6 +1,9 @@
 # Personal Zotero collection mapping (AI auto-generated)
 skills/paper-reader/assets/collection_mapping.json
 
+# Personal local overrides
+skills/_shared/user-config.local.json
+
 # Python cache
 __pycache__/
 *.pyc

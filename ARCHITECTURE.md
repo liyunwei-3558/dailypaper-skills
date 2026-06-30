@@ -86,6 +86,7 @@ Claude 以"毒舌但有料的资深研究员"角色点评每篇论文：
 - 写入 `{DAILY_PAPERS_PATH}/YYYY-MM-DD-论文推荐.md`
 - 更新 `.history.json`：追加今日推荐的 arXiv ID + 标题，只保留最近 30 天
 - 可选：git commit
+- 可选：调用 `publish_to_feishu.py`，通过 larksuite/cli 把推荐页创建为飞书文档
 
 ---
 
@@ -121,6 +122,21 @@ Claude 以"毒舌但有料的资深研究员"角色点评每篇论文：
 
 - 调用 `generate_concept_mocs.py` 和 `generate_paper_mocs.py`
 - 可选：git commit & push
+- 可选：调用 `publish_to_feishu.py`，把已回填链接的推荐页和“🔥 必读”论文笔记创建为飞书文档
+
+### 3.5 飞书发布
+
+飞书发布默认关闭。打开 `feishu.enabled=true` 后，脚本会复用 Obsidian 里已经生成的 Markdown，通过 larksuite/cli 的 `docs +create --doc-format markdown --title ... --content @file.md` 创建飞书云文档。
+
+实现细节：
+- 脚本：`skills/daily-papers/publish_to_feishu.py`
+- 读取配置：`_shared/user-config.json` / `user-config.local.json` 的 `feishu` 段
+- 发布前会去掉 YAML frontmatter，把 `[[wikilink]]` 转成普通文本
+- 每日推荐页会压缩作者/机构/长摘要字段，保留分流表、链接、锐评和图片，避免飞书导入长文档超时
+- 如果飞书一次性导入网络图片超时，脚本会自动改为“先创建无图正文，再逐张追加图片”
+- 单张网络图片追加仍超时时，脚本会把图片下载到本地临时目录，再用 `docs +media-insert --file` 上传补齐
+- 用 `{DAILY_PAPERS_PATH}/{feishu.registry_file}` 记录已发布源文件，避免重复创建
+- 如果配置了 `feishu.parent_token` / `feishu.parent_position`，会透传给 `lark-cli docs +create`
 
 ---
 
@@ -242,13 +258,24 @@ python3 paper_daemon.py --list       # 列出所有分类
     "auto_refresh_indexes": true,
     "git_commit": false,
     "git_push": false
+  },
+  "feishu": {
+    "enabled": false,
+    "cli": "lark-cli",
+    "as": "user",
+    "parent_token": "",
+    "parent_position": "",
+    "publish_recommendation": true,
+    "publish_required_notes": true,
+    "title_prefix": "每日论文推荐",
+    "registry_file": ".feishu-published.json"
   }
 }
 ```
 
 ### user_config.py
 
-Python 配置加载器，带缓存。提供 `load_user_config()` / `paths_config()` / `daily_papers_config()` / `automation_config()` 等便捷函数。会校验 `git_push` 不能在 `git_commit` 关闭时开启。
+Python 配置加载器，带缓存。提供 `load_user_config()` / `paths_config()` / `daily_papers_config()` / `automation_config()` / `feishu_config()` 等便捷函数。会校验 `git_push` 不能在 `git_commit` 关闭时开启。
 
 ### moc_builder.py
 

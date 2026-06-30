@@ -78,5 +78,16 @@
     "auto_refresh_indexes": true,
     "git_commit": false,
     "git_push": false
+  },
+  "feishu": {
+    "enabled": false,
+    "cli": "lark-cli",
+    "as": "user",
+    "parent_token": "",
+    "parent_position": "",
+    "publish_recommendation": true,
+    "publish_required_notes": true,
+    "title_prefix": "每日论文推荐",
+    "registry_file": ".feishu-published.json"
   }
 }

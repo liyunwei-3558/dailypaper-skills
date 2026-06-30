@@ -26,6 +26,7 @@ description: |
 - `AUTO_REFRESH_INDEXES`
 - `GIT_COMMIT_ENABLED`
 - `GIT_PUSH_ENABLED`
+- `FEISHU_ENABLED`
 - `ENRICHED_INPUT = /tmp/daily_papers_enriched.json`
 
 其中：
@@ -34,6 +35,7 @@ description: |
 - `CONCEPTS_PATH = {NOTES_PATH}/{concepts_folder}`
 - `DAILY_PAPERS_PATH = {VAULT_PATH}/{daily_papers_folder}`
 - `GIT_PUSH_ENABLED` 只有在 `GIT_COMMIT_ENABLED=true` 时才可能为真
+- `FEISHU_ENABLED = feishu.enabled`
 
 后续步骤统一使用上面的变量。
 
@@ -166,6 +168,31 @@ cd {VAULT_PATH} && git add -A && git commit -m "daily papers: notes YYYY-MM-DD"
 
 只有在 `GIT_PUSH_ENABLED=true` 且仓库已配置远端时才 push。
 
+### Step 6: 飞书发布（可选）
+
+仅当 `FEISHU_ENABLED=true` 时执行。执行前检查：
+
+1. `lark-cli` 已安装并可在当前 shell 中运行（如配置了 `feishu.cli`，使用该路径）
+2. `lark-cli` 已登录或已按 larksuite/cli 要求配置好飞书鉴权
+3. 当前推荐文件已经完成笔记链接回填
+
+然后运行：
+
+```bash
+python3 ../daily-papers/publish_to_feishu.py --recommendation "{DAILY_PAPERS_PATH}/YYYY-MM-DD-论文推荐.md" --date YYYY-MM-DD
+```
+
+发布规则：
+
+- `feishu.publish_recommendation=true` 时，创建/跳过每日推荐飞书文档
+- `feishu.publish_required_notes=true` 时，从分流表的“🔥 必读”和推荐文件里的 `📒 **笔记**` 链接收集重点笔记，并逐篇创建飞书文档
+- `feishu.parent_token` / `feishu.parent_position` 非空时传给 `lark-cli docs +create`，用于放到指定飞书目录位置
+- 脚本使用 `docs +create --doc-format markdown --title ... --content @file.md` 设置文档标题和内容
+- 脚本会把 Obsidian frontmatter 去掉，并把 `[[wikilink]]` 转成普通文本，减少飞书导入噪声
+- 脚本会保留图片；如果飞书一次性导入网络图片导致服务端超时，会先创建精简正文，再逐张追加图片，必要时下载图片后通过 `docs +media-insert --file` 上传
+- 脚本会维护 `{DAILY_PAPERS_PATH}/{feishu.registry_file}`，避免重复创建同一个本地 Markdown 对应的飞书文档
+- 如果发布失败，保留已生成的 Obsidian 文件，并把 `lark-cli` 的错误输出告知用户，不要回滚笔记
+
 ## 输出
 
 完成后告知用户：
@@ -173,6 +200,7 @@ cd {VAULT_PATH} && git add -A && git commit -m "daily papers: notes YYYY-MM-DD"
 - 生成了多少篇论文笔记
 - 回填了多少个笔记链接
 - 流水线全部完成
+- 如果开启了飞书发布，说明创建/跳过了多少个飞书文档
 
 ## 注意事项
 
@@ -180,6 +208,7 @@ cd {VAULT_PATH} && git add -A && git commit -m "daily papers: notes YYYY-MM-DD"
 - `/paper-reader` skill 会自动处理概念库补充，不要重复创建
 - 仅为"必读"论文生成笔记，"值得看"不生成，耗时正常，**不是跳过的理由**
 - 默认自动刷新目录页，但默认不做 git commit / push
+- 默认不发布飞书文档；只有 `feishu.enabled=true` 时才调用 larksuite/cli
 - **绝对禁止**以下偷懒行为：
   - 自己手写 70 行骨架笔记代替 paper-reader 输出
   - 以"context overflow"为由跳过论文不生成笔记
